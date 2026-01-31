@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import { users, medicines, schedules, logs } from "../src/server/mock_data";
+import { users, medicines, schedules, logs } from "./data";
 
 const app = express();
 
