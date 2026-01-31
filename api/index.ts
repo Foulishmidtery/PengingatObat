@@ -137,7 +137,6 @@ const logs = [
 ];
 
 // --- APP SETUP ---
-console.log("Setting up Express App...");
 const app = express();
 
 app.use(
@@ -148,19 +147,6 @@ app.use(
 );
 app.use(express.json());
 
-// Request Logger
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  try {
-    if (req.body && Object.keys(req.body).length > 0) {
-      console.log("Body:", JSON.stringify(req.body));
-    }
-  } catch (e) {
-    console.error("Error logging body:", e);
-  }
-  next();
-});
-
 // --- HANDLERS ---
 
 const healthHandler = (_req: Request, res: Response) => {
@@ -170,37 +156,32 @@ const healthHandler = (_req: Request, res: Response) => {
 const loginHandler = (req: Request, res: Response) => {
   try {
     if (!req.body) {
-      console.error("Body is missing in login request");
       res.status(400).json({ success: false, message: "Request body missing" });
       return;
     }
     const { username, password } = req.body;
-    console.log(`Login attempt for: ${username}`);
 
     const user = users.find(
       (u) => u.username === username && u.password === password,
     );
 
     if (user) {
-      console.log("Login success");
       res.json({ success: true, user });
       return;
     }
 
-    console.log("Login failed: invalid credentials");
     res
       .status(401)
       .json({ success: false, message: "Username atau password salah." });
   } catch (error: any) {
-    console.error("Login Handler Fatal Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Login Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 const scheduleHandler = (req: Request, res: Response) => {
   try {
     const userId = parseInt(req.params.userId || "0");
-    console.log(`Fetching schedules for user: ${userId}`);
 
     const user = users.find((u) => u.id === userId);
     if (!user) {
@@ -224,15 +205,14 @@ const scheduleHandler = (req: Request, res: Response) => {
 
     res.json(richSchedules);
   } catch (error: any) {
-    console.error("Schedule Handler Fatal Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Schedule Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 const takeMedicineHandler = (req: Request, res: Response) => {
   try {
     const { userId, scheduleId } = req.body;
-    console.log(`Taking medicine: User ${userId}, Schedule ${scheduleId}`);
 
     const schedule = schedules.find(
       // @ts-ignore
@@ -263,8 +243,8 @@ const takeMedicineHandler = (req: Request, res: Response) => {
 
     res.json({ success: true, message: "Obat berhasil diminum!", log: newLog });
   } catch (error: any) {
-    console.error("Take Medicine Fatal Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Take Medicine Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
