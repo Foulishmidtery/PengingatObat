@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import { users, medicines, schedules, logs } from "../src/server/mock_data";
@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 // --- API ENDPOINTS (Reuse Logic) ---
 
 // 1. Login
-app.post("/api/login", (req, res) => {
+app.post("/api/login", (req: Request, res: Response): void => {
   const { username, password } = req.body;
   const user = users.find(
     (u) => u.username === username && u.password === password,
@@ -19,20 +19,23 @@ app.post("/api/login", (req, res) => {
 
   if (user) {
     res.json({ success: true, user });
-  } else {
-    res
-      .status(401)
-      .json({ success: false, message: "Username atau password salah." });
+    return;
   }
+
+  res
+    .status(401)
+    .json({ success: false, message: "Username atau password salah." });
 });
 
 // 2. Get User Schedule
-app.get("/api/schedules/:userId", (req, res) => {
-  // @ts-ignore
-  const userId = parseInt(req.params.userId);
+app.get("/api/schedules/:userId", (req: Request, res: Response) => {
+  const userId = parseInt(req.params.userId || "");
 
   const user = users.find((u) => u.id === userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
 
   // @ts-ignore
   const userSchedules = schedules.filter((s) => s.user_id === userId);
@@ -52,7 +55,7 @@ app.get("/api/schedules/:userId", (req, res) => {
 });
 
 // 3. Mark Schedule as Taken
-app.post("/api/take-medicine", (req, res) => {
+app.post("/api/take-medicine", (req: Request, res: Response) => {
   const { userId, scheduleId } = req.body;
 
   const schedule = schedules.find(
@@ -60,9 +63,10 @@ app.post("/api/take-medicine", (req, res) => {
     (s) => s.id === scheduleId && s.user_id === userId,
   );
   if (!schedule) {
-    return res
+    res
       .status(404)
       .json({ success: false, message: "Jadwal tidak ditemukan." });
+    return;
   }
 
   // @ts-ignore
