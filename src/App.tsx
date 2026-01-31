@@ -27,6 +27,9 @@ function App() {
             Mari kita periksa jadwal kesehatan Anda hari ini.
         `;
       speak(welcomeMsg);
+    } else {
+      // Failed Login - Read Error
+      speak("Maaf, nama pengguna atau kata sandi tidak ditemukan. Mohon coba lagi.");
     }
   };
 

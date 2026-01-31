@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { expressPlugin } from "./vite-express-plugin";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), expressPlugin()],
   resolve: {
     extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
     alias: {

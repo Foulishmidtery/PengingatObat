@@ -51,8 +51,8 @@ export function useData() {
       setError(null);
       try {
         // Using relative path assuming Vite proxy is set OR CORS is open on Server
-        // For safety, full URL to localhost:3000
-        const res = await fetch("http://localhost:3000/api/login", {
+        // Fixed: Use relative URL for integrated middleware
+        const res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
@@ -64,7 +64,9 @@ export function useData() {
           localStorage.setItem("currentUser", JSON.stringify(data.user));
           return data.user;
         } else {
-          setError("Nama pengguna atau kata sandi salah.");
+          setError(
+            "Maaf, nama pengguna atau kata sandi tidak ditemukan. Mohon coba lagi.",
+          );
           return null;
         }
       } catch (err) {
@@ -86,7 +88,7 @@ export function useData() {
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/schedules/${user.id}`);
+      const res = await fetch(`/api/schedules/${user.id}`);
       const data = await res.json();
       // Sort for Elderly Cognitive Ease: Time Ascending
       data.sort(
@@ -111,7 +113,7 @@ export function useData() {
     async (scheduleId: number) => {
       if (!user) return;
       try {
-        const res = await fetch("http://localhost:3000/api/take-medicine", {
+        const res = await fetch("/api/take-medicine", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user.id, scheduleId }),
