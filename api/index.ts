@@ -8,10 +8,23 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// --- API ENDPOINTS (Reuse Logic) ---
+// Helper to handle both /api/route and /route (in case Vercel rewrites strip the prefix)
+const routes = {
+  login: ["/api/login", "/login"],
+  schedules: ["/api/schedules/:userId", "/schedules/:userId"],
+  takeMedicine: ["/api/take-medicine", "/take-medicine"],
+  health: ["/api/health", "/health"],
+};
+
+// --- API ENDPOINTS ---
+
+// Health Check
+app.get(routes.health, (req: Request, res: Response) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // 1. Login
-app.post("/api/login", (req: Request, res: Response): void => {
+app.post(routes.login, (req: Request, res: Response): void => {
   const { username, password } = req.body;
   const user = users.find(
     (u) => u.username === username && u.password === password,
@@ -28,7 +41,7 @@ app.post("/api/login", (req: Request, res: Response): void => {
 });
 
 // 2. Get User Schedule
-app.get("/api/schedules/:userId", (req: Request, res: Response) => {
+app.get(routes.schedules, (req: Request, res: Response) => {
   const userId = parseInt(req.params.userId || "");
 
   const user = users.find((u) => u.id === userId);
@@ -55,7 +68,7 @@ app.get("/api/schedules/:userId", (req: Request, res: Response) => {
 });
 
 // 3. Mark Schedule as Taken
-app.post("/api/take-medicine", (req: Request, res: Response) => {
+app.post(routes.takeMedicine, (req: Request, res: Response) => {
   const { userId, scheduleId } = req.body;
 
   const schedule = schedules.find(
