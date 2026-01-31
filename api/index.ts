@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 
-// Data Relational (Merged directly to avoid import issues on Vercel)
+// --- DATA (Embedded) ---
 const users = [
   {
     id: 1,
@@ -75,11 +75,10 @@ const medicines = [
 ];
 
 const schedules = [
-  // Budi's Schedule
   {
     id: 501,
     user_id: 1,
-    medicine_id: 101, // Amlodipine (Pagi)
+    medicine_id: 101,
     time: "07:00",
     label: "Pagi Hari",
     status: "pending",
@@ -87,7 +86,7 @@ const schedules = [
   {
     id: 505,
     user_id: 1,
-    medicine_id: 103, // Vit C (Siang)
+    medicine_id: 103,
     time: "12:00",
     label: "Siang Hari",
     status: "pending",
@@ -95,17 +94,15 @@ const schedules = [
   {
     id: 502,
     user_id: 1,
-    medicine_id: 102, // Metformin (Malam)
+    medicine_id: 102,
     time: "19:00",
     label: "Malam Hari",
     status: "pending",
   },
-
-  // Siti's Schedule
   {
     id: 503,
     user_id: 2,
-    medicine_id: 103, // Vitamin C
+    medicine_id: 103,
     time: "08:00",
     label: "Pagi",
     status: "pending",
@@ -113,7 +110,7 @@ const schedules = [
   {
     id: 504,
     user_id: 2,
-    medicine_id: 104, // OBH
+    medicine_id: 104,
     time: "12:00",
     label: "Siang",
     status: "pending",
@@ -121,7 +118,7 @@ const schedules = [
   {
     id: 505,
     user_id: 2,
-    medicine_id: 104, // OBH
+    medicine_id: 104,
     time: "20:00",
     label: "Malam",
     status: "pending",
@@ -139,42 +136,38 @@ const logs = [
   },
 ];
 
+// --- APP SETUP ---
+console.log("Setting up Express App...");
 const app = express();
 
-// Explicit CORS options
-const corsOptions = {
-  origin: "*", // Allow all for debug
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-};
-
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  }),
+);
 app.use(express.json());
 
-// Middleware to log all requests
+// Request Logger
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log("Headers:", JSON.stringify(req.headers));
-  console.log("Body:", JSON.stringify(req.body));
+  try {
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log("Body:", JSON.stringify(req.body));
+    }
+  } catch (e) {
+    console.error("Error logging body:", e);
+  }
   next();
 });
 
-// Helper to handle both /api/route and /route (in case Vercel rewrites strip the prefix)
-const routes = {
-  login: ["/api/login", "/login"],
-  schedules: ["/api/schedules/:userId", "/schedules/:userId"],
-  takeMedicine: ["/api/take-medicine", "/take-medicine"],
-  health: ["/api/health", "/health"],
+// --- HANDLERS ---
+
+const healthHandler = (req: Request, res: Response) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 };
 
-// --- API ENDPOINTS ---
-
-// Health Check
-app.get(routes.health, (req: Request, res: Response) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// 1. Login
-app.post(routes.login, (req: Request, res: Response): void => {
+const loginHandler = (req: Request, res: Response) => {
   try {
     if (!req.body) {
       console.error("Body is missing in login request");
@@ -182,7 +175,7 @@ app.post(routes.login, (req: Request, res: Response): void => {
       return;
     }
     const { username, password } = req.body;
-    console.log(`Attempting login for: ${username}`);
+    console.log(`Login attempt for: ${username}`);
 
     const user = users.find(
       (u) => u.username === username && u.password === password,
@@ -199,15 +192,14 @@ app.post(routes.login, (req: Request, res: Response): void => {
       .status(401)
       .json({ success: false, message: "Username atau password salah." });
   } catch (error: any) {
-    console.error("Login Handler Error:", error);
+    console.error("Login Handler Fatal Error:", error);
     res.status(500).json({ error: error.message });
   }
-});
+};
 
-// 2. Get User Schedule
-app.get(routes.schedules, (req: Request, res: Response) => {
+const scheduleHandler = (req: Request, res: Response) => {
   try {
-    const userId = parseInt(req.params.userId || "");
+    const userId = parseInt(req.params.userId || "0");
     console.log(`Fetching schedules for user: ${userId}`);
 
     const user = users.find((u) => u.id === userId);
@@ -232,13 +224,12 @@ app.get(routes.schedules, (req: Request, res: Response) => {
 
     res.json(richSchedules);
   } catch (error: any) {
-    console.error("Schedule Handler Error:", error);
+    console.error("Schedule Handler Fatal Error:", error);
     res.status(500).json({ error: error.message });
   }
-});
+};
 
-// 3. Mark Schedule as Taken
-app.post(routes.takeMedicine, (req: Request, res: Response) => {
+const takeMedicineHandler = (req: Request, res: Response) => {
   try {
     const { userId, scheduleId } = req.body;
     console.log(`Taking medicine: User ${userId}, Schedule ${scheduleId}`);
@@ -272,18 +263,35 @@ app.post(routes.takeMedicine, (req: Request, res: Response) => {
 
     res.json({ success: true, message: "Obat berhasil diminum!", log: newLog });
   } catch (error: any) {
-    console.error("Take Medicine Error:", error);
+    console.error("Take Medicine Fatal Error:", error);
     res.status(500).json({ error: error.message });
   }
+};
+
+// --- ROUTE REGISTRATION ---
+// Register both /api/x and /x to check against Vercel rewrites safely
+const routeMap = [
+  { paths: ["/api/health", "/health"], method: "get", handler: healthHandler },
+  { paths: ["/api/login", "/login"], method: "post", handler: loginHandler },
+  {
+    paths: ["/api/schedules/:userId", "/schedules/:userId"],
+    method: "get",
+    handler: scheduleHandler,
+  },
+  {
+    paths: ["/api/take-medicine", "/take-medicine"],
+    method: "post",
+    handler: takeMedicineHandler,
+  },
+];
+
+routeMap.forEach((route) => {
+  route.paths.forEach((path) => {
+    // @ts-ignore
+    app[route.method](path, route.handler);
+  });
 });
 
-// Global Error Handler
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error("Unhandled Middleware Error:", err);
-  res
-    .status(500)
-    .json({ error: "Internal Server Error", message: err.message });
-});
+console.log("Express App Configured.");
 
-// Export for Vercel
 export default app;
