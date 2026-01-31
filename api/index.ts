@@ -181,7 +181,7 @@ const loginHandler = (req: Request, res: Response) => {
 
 const scheduleHandler = (req: Request, res: Response) => {
   try {
-    const userId = parseInt(req.params.userId || "0");
+    const userId = parseInt((req.params.userId as string) || "0");
 
     const user = users.find((u) => u.id === userId);
     if (!user) {
