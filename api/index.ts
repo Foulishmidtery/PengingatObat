@@ -163,7 +163,7 @@ app.use((req, res, next) => {
 
 // --- HANDLERS ---
 
-const healthHandler = (req: Request, res: Response) => {
+const healthHandler = (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 };
 
@@ -269,28 +269,22 @@ const takeMedicineHandler = (req: Request, res: Response) => {
 };
 
 // --- ROUTE REGISTRATION ---
-// Register both /api/x and /x to check against Vercel rewrites safely
-const routeMap = [
-  { paths: ["/api/health", "/health"], method: "get", handler: healthHandler },
-  { paths: ["/api/login", "/login"], method: "post", handler: loginHandler },
-  {
-    paths: ["/api/schedules/:userId", "/schedules/:userId"],
-    method: "get",
-    handler: scheduleHandler,
-  },
-  {
-    paths: ["/api/take-medicine", "/take-medicine"],
-    method: "post",
-    handler: takeMedicineHandler,
-  },
-];
+// Use explicit calls to avoid TS errors with string arrays
+// 1. Health
+app.get("/api/health", healthHandler);
+app.get("/health", healthHandler);
 
-routeMap.forEach((route) => {
-  route.paths.forEach((path) => {
-    // @ts-ignore
-    app[route.method](path, route.handler);
-  });
-});
+// 2. Login
+app.post("/api/login", loginHandler);
+app.post("/login", loginHandler);
+
+// 3. Schedules
+app.get("/api/schedules/:userId", scheduleHandler);
+app.get("/schedules/:userId", scheduleHandler);
+
+// 4. Take Medicine
+app.post("/api/take-medicine", takeMedicineHandler);
+app.post("/take-medicine", takeMedicineHandler);
 
 console.log("Express App Configured.");
 
