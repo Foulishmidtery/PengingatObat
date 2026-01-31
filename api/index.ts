@@ -141,8 +141,22 @@ const logs = [
 
 const app = express();
 
-app.use(cors());
-app.use(express.json()); // Built-in express body parser
+// Explicit CORS options
+const corsOptions = {
+  origin: "*", // Allow all for debug
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log("Headers:", JSON.stringify(req.headers));
+  console.log("Body:", JSON.stringify(req.body));
+  next();
+});
 
 // Helper to handle both /api/route and /route (in case Vercel rewrites strip the prefix)
 const routes = {
@@ -162,20 +176,30 @@ app.get(routes.health, (req: Request, res: Response) => {
 // 1. Login
 app.post(routes.login, (req: Request, res: Response): void => {
   try {
+    if (!req.body) {
+      console.error("Body is missing in login request");
+      res.status(400).json({ success: false, message: "Request body missing" });
+      return;
+    }
     const { username, password } = req.body;
+    console.log(`Attempting login for: ${username}`);
+
     const user = users.find(
       (u) => u.username === username && u.password === password,
     );
 
     if (user) {
+      console.log("Login success");
       res.json({ success: true, user });
       return;
     }
 
+    console.log("Login failed: invalid credentials");
     res
       .status(401)
       .json({ success: false, message: "Username atau password salah." });
   } catch (error: any) {
+    console.error("Login Handler Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -184,6 +208,7 @@ app.post(routes.login, (req: Request, res: Response): void => {
 app.get(routes.schedules, (req: Request, res: Response) => {
   try {
     const userId = parseInt(req.params.userId || "");
+    console.log(`Fetching schedules for user: ${userId}`);
 
     const user = users.find((u) => u.id === userId);
     if (!user) {
@@ -207,6 +232,7 @@ app.get(routes.schedules, (req: Request, res: Response) => {
 
     res.json(richSchedules);
   } catch (error: any) {
+    console.error("Schedule Handler Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -215,6 +241,7 @@ app.get(routes.schedules, (req: Request, res: Response) => {
 app.post(routes.takeMedicine, (req: Request, res: Response) => {
   try {
     const { userId, scheduleId } = req.body;
+    console.log(`Taking medicine: User ${userId}, Schedule ${scheduleId}`);
 
     const schedule = schedules.find(
       // @ts-ignore
@@ -245,8 +272,17 @@ app.post(routes.takeMedicine, (req: Request, res: Response) => {
 
     res.json({ success: true, message: "Obat berhasil diminum!", log: newLog });
   } catch (error: any) {
+    console.error("Take Medicine Error:", error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+  console.error("Unhandled Middleware Error:", err);
+  res
+    .status(500)
+    .json({ error: "Internal Server Error", message: err.message });
 });
 
 // Export for Vercel
