@@ -57,6 +57,12 @@ export function useData() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
         });
+
+        if (!res.ok) {
+          setError(`Gagal: ${res.status} ${res.statusText}`);
+          return null;
+        }
+
         const data = await res.json();
 
         if (data.success) {
@@ -64,14 +70,12 @@ export function useData() {
           localStorage.setItem("currentUser", JSON.stringify(data.user));
           return data.user;
         } else {
-          setError(
-            "Maaf, nama pengguna atau kata sandi tidak ditemukan. Mohon coba lagi.",
-          );
+          setError("Maaf, nama pengguna atau kata sandi tidak ditemukan.");
           return null;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setError("Gagal terhubung ke server.");
+        setError("Network Error: " + (err.message || "Unknown"));
         return null;
       } finally {
         setLoading(false);
